@@ -388,7 +388,7 @@ class SofincoInstaller
             `debit_differe` int(1) NULL,
             `remboursement` int(1) NULL,
             `mixte` int(1) NULL DEFAULT 0,
-            `3ds` int(1) 1
+            `3ds` int(1) DEFAULT 1
         ) ENGINE = %s ;';
         $result = $db->execute(sprintf($sql, _DB_PREFIX_, _MYSQL_ENGINE_));
 
