@@ -1,8 +1,9 @@
 # Change Log
 
-## [3.0.22] 2020-02-25
+## [3.0.22] 2020-04-08
 ### Modifications
-Corrections templates
+Correction prise en compte IPN nocturnes (doubles paiements)
+
 
 ## [3.0.18] 2019-10-03
 ### Modifications

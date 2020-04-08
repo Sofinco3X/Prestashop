@@ -98,7 +98,7 @@ class SofincoController extends SofincoAbstract
     {
         try {
             // Retrieves params
-            $params = $this->getHelper()->getParams(false, false);
+            $params = $this->getHelper()->getParams(false);
 
             if ($params !== false) {
                 $cart = $this->getHelper()->untokenizeCart($params['reference']);
@@ -234,7 +234,7 @@ class SofincoController extends SofincoAbstract
                     if ($this->getHelper()->createCartLocker($cart->id, $params['transaction'])) {
                         // Payment success
                         switch ($type) {
-                            case 'standard':
+                            case 'standard':								
                                 $this->getModule()->onStandardIPNSuccess($cart, $params);
                                 break;
 
@@ -266,7 +266,8 @@ class SofincoController extends SofincoAbstract
         } catch (Exception $e) {
             $message = sprintf('(IPN) Exception %s (%s %d).', $e->getMessage(), $e->getFile(), $e->getLine());
             $this->logFatal($message);
-            header('Status: 500 Error', true, 500);
+            if($message=="Order already validated")header('Status: 200 Ok', true, 200);
+			else header('Status: 500 Error', true, 500);			
             echo $e->getMessage();
         }
     }
@@ -393,7 +394,7 @@ class SofincoController extends SofincoAbstract
                 // $_SERVER['QUERY_STRING'] = $matches[1];
                 // $loop = intval($matches[2]);
             // }
-            $params = $this->getHelper()->getParams(false, true);
+            $params = $this->getHelper()->getParams(false);
             if ($params !== false) {
                 $cart = $this->getHelper()->untokenizeCart($params['reference']);
                 // $orderId = Order::getOrderByCartId($cart->id);

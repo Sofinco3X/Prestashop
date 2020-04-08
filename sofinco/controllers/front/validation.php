@@ -41,12 +41,12 @@ class SofincoValidationModuleFrontController extends ModuleFrontController
      * @see FrontController::postProcess()
      */
 	public function initContent(){
-		  parent::initContent();
-			if(_PS_VERSION_ >= '1.7'){
-				$this->setTemplate('module:sofinco/views/templates/front/validation.tpl');
-			}else{
-				$this->setTemplate('validation.tpl');
-			}
+		parent::initContent();
+		if(_PS_VERSION_ >= '1.7'){
+			$this->setTemplate('module:sofinco/views/templates/front/validation.tpl');
+		}else{
+			$this->setTemplate('validation.tpl');
+		}
 	}
 
     public function postProcess()

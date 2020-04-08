@@ -661,7 +661,7 @@ EOF;
 
         // Retrieve method
         $method = $this->getHelper()->getPaymentMethod($details['carte']);
-        if (1 == $method['mixte']) {
+        if (array_key_exists('mixte',$method) && (1 == $method['mixte']) ) {
             $details['payment_by'] = 'mixed';
         }
 

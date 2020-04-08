@@ -31,11 +31,8 @@ class SofincoReturnModuleFrontController extends ModuleFrontController
 {
 	public function initContent(){
 		  parent::initContent();
-			if(_PS_VERSION_ >= '1.7'){
-				$this->setTemplate('module:sofinco/views/templates/front/validation.tpl');
-			}else{
-				$this->setTemplate('validation.tpl');
-		}
+			if(_PS_VERSION_ >= '1.7')$this->setTemplate('module:sofinco/views/templates/front/validation.tpl');
+			else $this->setTemplate('validation.tpl');
 	}
 }
 ?>

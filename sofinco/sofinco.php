@@ -893,13 +893,14 @@ class Sofinco extends PaymentModule
 			$orderId = Order::getOrderByCartId((int)($cart->id));	
 			$order = new Order($orderId);
 			$this->logDebug(sprintf('Cart %d: got Order %d', $cart->id, $order->id));
+			if($order->hasBeenPaid())throw new Exception('Order already validated');
 			$changeHistory = new OrderHistory();
 			$changeHistory->id_order = $order->id;
 			$changeHistory->changeIdOrderState($this->_config->getSuccessState(), $changeHistory->id_order);
 			$changeHistory->addWithemail();
 			
-		}
 
+		}
 
         // Create Sofinco payment
         $this->getHelper()->addOrderPayment($order, $type, $params, 'Sofinco');
