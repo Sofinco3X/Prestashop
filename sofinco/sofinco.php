@@ -13,7 +13,7 @@
 * support@paybox.com so we can mail you a copy immediately.
 *
 *  @category  Module / payments_gateways
-*  @version   3.0.12
+*  @version   3.0.22
 *  @author    BM Services <contact@bm-services.com>
 *  @copyright 2012-2017 Sofinco
 *  @license   http://opensource.org/licenses/OSL-3.0
@@ -46,16 +46,17 @@ class Sofinco extends PaymentModule
 
         $this->name = 'sofinco';
         $this->tab = 'payments_gateways';
-        $this->version = '3.0.14';
+        $this->version = '3.0.22';
         $this->author = 'Sofinco';
         $this->bootstrap = true;
 
         parent::__construct();
-
-        $this->ps_versions_compliancy = array('min' => '1.5.0.0', 'max' => _PS_VERSION_);
+		$versionmax = _PS_VERSION_ <= '1.5.6.1'? '1.7.6.2':_PS_VERSION_;
+        $this->ps_versions_compliancy = array('min' => '1.5', 'max' => $versionmax);
 
         $this->displayName = 'Sofinco';
         $this->description = $this->l('In one integration, offer many payment methods, get a customized secure payment page, multi-lingual and multi-currency and offer debit on delivery or in 3 installments without charges for your customers.');
+        $this->controllers = array('redirect','validation','return');
     }
 
     public function getConfig()
@@ -122,7 +123,11 @@ class Sofinco extends PaymentModule
     {
         return $this->_path;
     }
-
+    public function getRedirPath()
+    {
+        $base = Tools::getHttpHost(true, false).__PS_BASE_URI__;
+        return $base.= 'index.php?fc=module&module=sofinco&controller=redirect&a=r';
+    }
     public function hookAdminOrder($params)
     {
         require_once dirname(__FILE__) . '/classes/SofincoAdminOrder.php';
@@ -235,7 +240,7 @@ class Sofinco extends PaymentModule
         global $smarty, $cart, $cookie;
 
         // Load methods
-        $methods = $this->getHelper()->getActivePaymentMethods();
+        $methods = $this->getHelper()->getActivePaymentMethods($cart);
         // [3.0.9] Remove filtering
         // $debitTypeForCard = $this->getConfig()->getDebitTypeForCard();
         $recurringCards = array();
@@ -259,7 +264,8 @@ class Sofinco extends PaymentModule
                 'payment' => $method['type_payment'],
                 'card' => $method['type_card'],
                 'label' => $method['label'],
-                'url' => $this->getPath().'?'.$params,
+                // 'url' => $this->getPath().'?'.$params,
+                'url' => $this->getRedirPath().'&'.$params,													   
                 'image' => $this->getMethodImageUrl($method['type_card']),
             );
             $cards[] = $card;
@@ -320,7 +326,7 @@ class Sofinco extends PaymentModule
         $paymentOptions = array();
 
         // Load methods
-        $methods = $this->getHelper()->getActivePaymentMethods();
+        $methods = $this->getHelper()->getActivePaymentMethods($cart);
         // [3.0.9] Remove filtering
         // $debitTypeForCard = $this->getConfig()->getDebitTypeForCard();
         $recurringCards = array();
@@ -344,7 +350,8 @@ class Sofinco extends PaymentModule
                 'payment' => $method['type_payment'],
                 'card' => $method['type_card'],
                 'label' => $method['label'],
-                'url' => $this->getPath().'?'.$params,
+                // 'url' => $this->getPath().'?'.$params,
+                'url' => $this->getRedirPath().'&'.$params,													   
                 'image' => $this->getMethodImageUrl($method['type_card']),
             );
             $cards[] = $card;
@@ -401,9 +408,27 @@ class Sofinco extends PaymentModule
         }
 
         $paymentOptions = array();
+		global $cart;
+
+		$error = Tools::getValue('sofincoReason');
+		if($error){
+			$messageHtml = "<p class='alert alert-danger'><b>";
+			switch($error){
+				case "cancel":
+					$messageHtml .=  $this->l('The payment was cancelled.');
+					break;
+				case "error":
+					$messageHtml .=  $this->l('Your payment was refused, please choose another payment method.');
+					break;
+				default:break;
+			}
+			$messageHtml .=  "</b></p>";
+			echo $messageHtml;
+		}
+
 
         // Load methods
-        $methods = $this->getHelper()->getActivePaymentMethods();
+        $methods = $this->getHelper()->getActivePaymentMethods($cart);
         // [3.0.9] Remove filtering
         // $debitTypeForCard = $this->getConfig()->getDebitTypeForCard();
         $recurringCards = array();
@@ -427,7 +452,8 @@ class Sofinco extends PaymentModule
                 'payment' => $method['type_payment'],
                 'card' => $method['type_card'],
                 'label' => $this->l('Pay by').' '.$method['label'],
-                'url' => $this->getPath().'?'.$params,
+                // 'url' => $this->getPath().'?'.$params,
+                'url' => $this->getRedirPath().'&'.$params,
                 'image' => $this->getMethodImageUrl($method['type_card']),
             );
             $cards[] = $card;
@@ -515,20 +541,23 @@ class Sofinco extends PaymentModule
         $order = isset($params['order']) ? $params['order'] : $params['objOrder'];
 
         // Must be order paid with Payment platform
-        $details = $this->getHelper()->getOrderDetails($order->id);
-        if (empty($details)) {
-            return;
-        }
+        // $details = $this->getHelper()->getOrderDetails($order->id);
+        // if (empty($details)) {
+            // return;
+        // }
+
+        $lang = $this->context->language;
+		$version = version_compare(_PS_VERSION_, '1.7', '>=') ? "17":"";
 
         $lang = $this->context->language;
         if (!empty($lang) && !empty($lang->iso_code)) {
-            $template = $this->getTemplatePath('payment_return.' . $lang->iso_code . '.tpl');
+            $template = $this->getTemplatePath('payment_return'. $version. '.' . $lang->iso_code . '.tpl');
             if (!is_null($template)) {
-                return $this->fetchTemplate('payment_return.' . $lang->iso_code . '.tpl');
+                return $this->fetchTemplate('payment_return'. $version. '.' . $lang->iso_code . '.tpl');
             }
         }
 
-        return $this->fetchTemplate('payment_return.tpl');
+        return $this->fetchTemplate('payment_return'. $version. '.tpl');
     }
 
     /**
@@ -829,16 +858,17 @@ class Sofinco extends PaymentModule
         if ($params['paymentType'] == 'KWIXO') {
             $state = $this->_config->getKwixoSuccessState();
         } else {
-            $state = $this->_config->getSuccessState();
+            //middle state by default until IPN reception
+			$state = $this->_config->getPendingState();
         }
 
-        if ($this->_config->getDebitType() == 'receive') {
+        // if ($this->_config->getDebitType() == 'receive') {
             $type = 'authorization';
             $message = $this->l('Payment was authorized by PaymentPlatform.');
-        } else {
-            $type = 'capture';
-            $message = $this->l('Payment was authorized and captured by PaymentPlatform.');
-        }
+        // } else {
+            // $type = 'capture';
+            // $message = $this->l('Payment was authorized and captured by PaymentPlatform.');
+        // }
 
         // [3.0.4] Fix Context Error in Mail::Send() PS < 1.5.5
         if ((Context::getContext()->link instanceof Link) === false) {
@@ -846,20 +876,31 @@ class Sofinco extends PaymentModule
         }
 
         $this->logDebug(sprintf('Cart %d: Validating order', $cart->id));
-        try {
-            $paymentName = $this->getHelper()->getDisplayName($this->displayName, $params['cardType']);
-            $result = parent::validateOrder($cart->id, $state, $amount, $paymentName, $message, array('transaction_id' => $params['transaction']), null, false, $cart->secure_key);
-        } catch (Exception $e) {
-            $this->logFatal(sprintf('Cart %d: Error validating PrestaShop order:', $cart->id, $e->getMessage()));
-        }
+		if(!$cart->OrderExists()){
+			try {
+				$paymentName = $this->getHelper()->getDisplayName($this->displayName, $params['cardType']);
+				$result = parent::validateOrder($cart->id, $state, $amount, $paymentName, $message, array('transaction_id' => $params['transaction']), null, false, $cart->secure_key);
+			} catch (Exception $e) {
+				$this->logFatal(sprintf('Cart %d: Error validating PrestaShop order:', $cart->id, $e->getMessage()));
+			}
+			if (!$result) {
+				$this->logFatal(sprintf('Cart %d: Unable to validate PrestaShop order', $cart->id));
+				throw new Exception('Unable to validate order');
+			}
+			$this->logDebug(sprintf('Cart %d: Order %d validated, creating details', $cart->id, $this->currentOrder));
+			$order = new Order($this->currentOrder);
+		}else{
+			$orderId = Order::getOrderByCartId((int)($cart->id));	
+			$order = new Order($orderId);
+			$this->logDebug(sprintf('Cart %d: got Order %d', $cart->id, $order->id));
+			$changeHistory = new OrderHistory();
+			$changeHistory->id_order = $order->id;
+			$changeHistory->changeIdOrderState($this->_config->getSuccessState(), $changeHistory->id_order);
+			$changeHistory->addWithemail();
+			
+		}
 
-        if (!$result) {
-            $this->logFatal(sprintf('Cart %d: Unable to validate PrestaShop order', $cart->id));
-            throw new Exception('Unable to validate order');
-        }
 
-        $this->logDebug(sprintf('Cart %d: Order %d validated, creating details', $cart->id, $this->currentOrder));
-        $order = new Order($this->currentOrder);
         // Create Sofinco payment
         $this->getHelper()->addOrderPayment($order, $type, $params, 'Sofinco');
         // Update payment CC information

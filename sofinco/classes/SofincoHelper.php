@@ -23,6 +23,7 @@
 if (!defined('_PS_VERSION_')) {
     exit;
 }
+require_once( __DIR__ . '/lib/IsoCountry.php' );
 
 /**
  * Sofinco generic code
@@ -612,12 +613,17 @@ class SofincoHelper extends SofincoAbstract
         $id_lang = $cart->id_lang;
         $address = new Address($cart->id_address_invoice, $id_lang);
         $country = $this->getCountryById($address->id_country);
-        $reference = $cart->id.' - '.$this->getBillingName($customer);
+       $reference = $cart->id.' - '.$this->getBillingName($customer).' - '.time();
+        // $reference = $cart->id.' - '.$this->getBillingName($customer);
 
         // Parameters
-        $base = Tools::getHttpHost(true, false).__PS_BASE_URI__;
-        $base .= 'modules/sofinco/index.php?t=';
-        if ($type == 'threetime') {
+        if (version_compare(_PS_VERSION_, '1.5.0.1', '<=')) {
+			$base = Tools::getShopDomainSsl(true, true);
+        } else {
+			$base = Tools::getHttpHost(true, false).__PS_BASE_URI__;
+        }
+        $base .= '/index.php?fc=module&module=sofinco&controller=validation&t=';
+       if ($type == 'threetime') {
             $base .= '3';
         } else {
             $base .= 's';
@@ -694,7 +700,8 @@ class SofincoHelper extends SofincoAbstract
             case 1:
                 if ($this->getConfig()->get3DSEnabled()) {
                     $tdsAmount = $this->getConfig()->get3DSAmount();
-                    $enable3ds = empty($tdsAmount) || ($orderAmount >= $tdsAmount);
+                    $maxAmount = $this->getConfig()->get3DSMaxAmount();
+                    $enable3ds = empty($tdsAmount) || ($orderAmount >= $tdsAmount && $orderAmount <= $maxAmount);
                 }
                 break;
 
@@ -983,23 +990,38 @@ class SofincoHelper extends SofincoAbstract
         return Db::getInstance()->executeS($sql);
     }
 
-    public function getActivePaymentMethods()
+    public function getActivePaymentMethods($cart = null)
     {
         $allMethods = $this->getAllPaymentMethods();
         $methods = array();
-        foreach ($allMethods as $method) {
+		$amountScale = $this->_currencyDecimals[$this->getCurrency($cart)];
+		$amountScale = pow(10, $amountScale);
+		$max = round(floatval($this->getConfig()->getMaxAmount()));
+		$max = intval(sprintf('%03d', $max*$amountScale));
+		$min = round(floatval($this->getConfig()->getMinAmount()));
+		$min = intval(sprintf('%03d', $min*$amountScale));
+		$cartAmount = round(floatval($cart->getOrderTotal()));
+		$cartAmount = intval(sprintf('%03d', $cartAmount * $amountScale));
+		$limited = false;
+		if($min>=0 || $max>=0)$limited = true;
+      foreach ($allMethods as $method) {
             $id = $method['id_card'];
             $active = Configuration::get('SOFINCO_CARD_ENABLED_'.$id);
+			if($limited && (($cartAmount >= $max) || ($cartAmount <= $min))){
+				$active = false;
+			}else{
+				$active = true;
+			}
             $label = Configuration::get('SOFINCO_CARD_LABEL_'.$id);
-            if ($active !== false) {
-                $method['active'] = $active;
-            }
-            if ($label !== false) {
-                $method['label'] = $label;
-            }
-            if ($method['active'] == 1) {
-                $methods[] = $method;
-            }
+            if ($active == false) {
+                $method['active'] = 0;
+			}
+			if ($label !== false) {
+				$method['label'] = $label;
+			}
+			if ($method['active'] == 1) {
+				$methods[] = $method;
+			}
         }
 
         return $methods;
@@ -1194,12 +1216,12 @@ class SofincoHelper extends SofincoAbstract
             $res = (boolean) openssl_verify($matches[1], $signature, $pubkey);
 
             if (!$res) {
-                if (preg_match('#^t=[s3]&a=[cfrsij]&(.*)&K=(.*)$#', $data, $matches)) {
+                if (preg_match('#^fc=module&module=sofinco&controller=validation&t=[s3]&a=[cfrsij]&(.*)&K=(.*)$#', $data, $matches)) {
                     $signature = base64_decode(urldecode($matches[2]));
                     $res = (boolean) openssl_verify($matches[1], $signature, $pubkey);
                 }
 
-                if (preg_match('#^t=[s3]&a=[cfrsij]&C=IDEAL&P=PREPAYEE&(.*)&K=(.*)$#', $data, $matches)) {
+                if (preg_match('#^fc=module&module=sofinco&controller=validation&t=[s3]&a=[cfrsij]&C=IDEAL&P=PREPAYEE&(.*)&K=(.*)$#', $data, $matches)) {
                     $signature = base64_decode(urldecode($matches[2]));
                     $res = (boolean) openssl_verify($matches[1], $signature, $pubkey);
                 }
@@ -1761,7 +1783,7 @@ class SofincoHelper extends SofincoAbstract
      */
     public function untokenizeCart($token)
     {
-        $parts = explode(' - ', $token, 2);
+        $parts = explode(' - ', $token,3);
         if (count($parts) < 2) {
             $message = 'Invalid decrypted token "%s"';
             throw new Exception(sprintf($this->l($message), $token));
@@ -2190,42 +2212,33 @@ class SofincoHelper extends SofincoAbstract
 				$title = "Mme";
 				break;
 			default:
-				$title = "X";
+				$title = "Mr";
 				break;
 		}
-		$firstName = $customer->firstname;
-        $lastName = $customer->lastname;
-        $address1 = $address->address1;
-        $address2 = $address->address2;
+		$firstName = trim($this->remove_accents($customer->firstname));
+        $lastName = trim($this->remove_accents($customer->lastname));
+        $address1 = trim(str_replace("."," ",$this->remove_accents($address->address1)));
+        $address2 = trim(str_replace("."," ",$this->remove_accents($address->address2)));
         $zipCode = $address->postcode;
-        $city = $address->city;
-        $countryCode = $this->getCountryNumericIsoCode($country['iso_code']);
-        $countryName = Country::getNameById($id_lang, $country['id_country']);
-        $countryCodeHomePhone = "+".$country['call_prefix'];
-        $homePhone = $address->phone;
-        $countryCodeMobilePhone = "+".$country['call_prefix'];
-        $mobilePhone = $address->phone_mobile;
-        
-//         $xmlBillingInformation = array();
-//         $xmlBillingInformation['Billing'][] = array();
-//         $xmlBillingInformation['Billing']['Address'][] = array(
-//             'FirstName' => $firstName,
-//             'LastName' => $lastName,
-//             'Address1' => $address1,
-//             'Address2' => $address2,
-//             'ZipCode' => $zipCode,
-//             'City' => $city,
-//             'CountryCode' => $countryCode,
-//             'CountryName' => $countryName,
-//             'CountryCodeHomePhone' => $countryCodeHomePhone,
-//             'HomePhone' => $homePhone,
-//             'CountryCodeMobilePhone' => $countryCodeMobilePhone,
-//             'MobilePhone' => $mobilePhone
-//         );
-        
-        
+        $city = trim(str_replace("."," ",$this->remove_accents($address->city)));
+
+		$IsoCountry = new IsoCountry($country['iso_code']);
+        $countryCode = $IsoCountry->IsoCode;
+		$countryText = $IsoCountry->Name;
+
+        // $countryCode = $this->getCountryNumericIsoCode($country['iso_code']);
+        // $countryName = Country::getNameById($id_lang, $country['id_country']);
+		$countryName = $this->remove_accents(substr($countryText,0,1).strtolower(substr($countryText,1)));
+
+		$homePhone = isset($address->phone)?$IsoCountry->normalizeNumber($address->phone):"";
+		$mobilePhone = isset($address->phone_mobile)?$IsoCountry->normalizeNumber($address->phone_mobile):"";            
+
+        $countryCodeHomePhone =  "+".$IsoCountry->PhoneCode;
+        $countryCodeMobilePhone = $countryCodeHomePhone;
+        if(isset($address->phone_mobile)){
+			$mobilePhone = $IsoCountry->normalizeNumber($address->phone_mobile);            
+        }else{$mobilePhone = $IsoCountry->normalizeNumber($address->phone_mobile);}
         $simpleXMLElement = new SimpleXMLElement("<Billing/>");
-        // $billingXML = $simpleXMLElement->addChild('Billing');
         $addressXML = $simpleXMLElement->addChild('Address');
         $addressXML->addChild('Title',$title);
         $addressXML->addChild('FirstName',$firstName);
@@ -2237,13 +2250,27 @@ class SofincoHelper extends SofincoAbstract
         $addressXML->addChild('CountryCode',$countryCode);
         $addressXML->addChild('CountryName',$countryName);
         $addressXML->addChild('CountryCodeHomePhone',$countryCodeHomePhone);
-        $addressXML->addChild('HomePhone',$homePhone);
+		$addressXML->addChild('HomePhone',$homePhone);
         $addressXML->addChild('CountryCodeMobilePhone',$countryCodeMobilePhone);
-        $addressXML->addChild('MobilePhone',$mobilePhone);
-        
+		$addressXML->addChild('MobilePhone',$mobilePhone);
         return $simpleXMLElement->asXML();
     }
-    
+
+	
+	private function remove_accents($string){
+    $table = array(
+        'Š'=>'S', 'š'=>'s', 'Đ'=>'Dj', 'đ'=>'dj', 'Ž'=>'Z', 'ž'=>'z', 'Č'=>'C', 'č'=>'c', 'Ć'=>'C', 'ć'=>'c',
+        'À'=>'A', 'Á'=>'A', 'Â'=>'A', 'Ã'=>'A', 'Ä'=>'A', 'Å'=>'A', 'Æ'=>'A', 'Ç'=>'C', 'È'=>'E', 'É'=>'E',
+        'Ê'=>'E', 'Ë'=>'E', 'Ì'=>'I', 'Í'=>'I', 'Î'=>'I', 'Ï'=>'I', 'Ñ'=>'N', 'Ò'=>'O', 'Ó'=>'O', 'Ô'=>'O',
+        'Õ'=>'O', 'Ö'=>'O', 'Ø'=>'O', 'Ù'=>'U', 'Ú'=>'U', 'Û'=>'U', 'Ü'=>'U', 'Ý'=>'Y', 'Þ'=>'B', 'ß'=>'Ss',
+        'à'=>'a', 'á'=>'a', 'â'=>'a', 'ã'=>'a', 'ä'=>'a', 'å'=>'a', 'æ'=>'a', 'ç'=>'c', 'è'=>'e', 'é'=>'e',
+        'ê'=>'e', 'ë'=>'e', 'ì'=>'i', 'í'=>'i', 'î'=>'i', 'ï'=>'i', 'ð'=>'o', 'ñ'=>'n', 'ò'=>'o', 'ó'=>'o',
+        'ô'=>'o', 'õ'=>'o', 'ö'=>'o', 'ø'=>'o', 'ù'=>'u', 'ú'=>'u', 'û'=>'u', 'ý'=>'y', 'ý'=>'y', 'þ'=>'b',
+        'ÿ'=>'y', 'Ŕ'=>'R', 'ŕ'=>'r',
+    );
+   
+    return strtr($string, $table);
+	}
     /**
      * Return the country corresponding to the id parameter
      * @param int $idCountry

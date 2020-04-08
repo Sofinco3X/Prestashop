@@ -30,15 +30,16 @@ if (!defined('_PS_VERSION_')) {
 class SofincoConfig
 {
     private $_defaults = array(
-        'SOFINCO_3DS'                            => 1,
-        'SOFINCO_3DS_MIN_AMOUNT'                 => '',
-        'SOFINCO_DEBUG_MODE'                     => 'FALSE',
+        'SOFINCO_3DS'                            => 0,
+        'SOFINCO_MIN_AMOUNT'                 	 => '150',
+        'SOFINCO_MAX_AMOUNT'                 	 => '2000',
+        'SOFINCO_DEBUG_MODE'                     => 0,
         'SOFINCO_HASH'                           => 'SHA512',
         'SOFINCO_IDENTIFIANT'                    => '259207933',
         'SOFINCO_KEYTEST'                        => '0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF',
         'SOFINCO_PASS'                           => 'SOFINCOACTIONS',
         'SOFINCO_PRODUCTION'                     => 0,
-        'SOFINCO_RANG'                           => '071',
+        'SOFINCO_RANG'                           => '073',
         'SOFINCO_SITE'                           => '8888872',
         'SOFINCO_WEB_CASH_DIFF_DAY'              => 0,
         'SOFINCO_WEB_CASH_TYPE'                  => 'immediate',
@@ -158,9 +159,14 @@ class SofincoConfig
         return $this->_get('SOFINCO_3DS');
     }
 
-    public function get3DSAmount()
+    public function getMinAmount()
     {
-        return $this->_get('SOFINCO_3DS_MIN_AMOUNT');
+        return $this->_get('SOFINCO_MIN_AMOUNT');
+    }
+    
+    public function getMaxAmount()
+    {
+        return $this->_get('SOFINCO_MAX_AMOUNT');
     }
 
     public function getAllowedIps()
@@ -250,6 +256,10 @@ class SofincoConfig
     public function getSuccessState()
     {
         return $this->_get('SOFINCO_WEB_CASH_STATE');
+    }
+    public function getPendingState()
+    {
+        return $this->_get('SOFINCO_MIDDLE_STATE_NX');
     }
 
     protected function _getUrls($type)

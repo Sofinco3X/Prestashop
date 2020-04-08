@@ -56,7 +56,7 @@
 <div class="row">
 	<div class="col-xs-12 col-md-6">
 		<p class="payment_module sofinco_module">
-			<a href="{$card.url|escape:'html'}" style="background-image: url({$card.image})" title="{$card.card}">
+			<a href="{$card.url|escape:'html'}" style="background: url({$card.image}) 27px no-repeat" title="{$card.card}">
 				{l s='Pay by' mod='sofinco'} {$card.label}
 			</a>
 		</p>

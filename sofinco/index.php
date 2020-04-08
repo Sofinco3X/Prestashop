@@ -13,7 +13,7 @@
 * support@e-transactions.fr so we can mail you a copy immediately.
 *
 *  @category  Module / payments_gateways
-*  @version   3.0.8
+*  @version   3.0.16
 *  @author    BM Services <contact@bm-services.com>
 *  @copyright 2012-2016 Sofinco
 *  @license   http://opensource.org/licenses/OSL-3.0

@@ -388,7 +388,7 @@ class SofincoInstaller
             `debit_differe` int(1) NULL,
             `remboursement` int(1) NULL,
             `mixte` int(1) NULL DEFAULT 0,
-            `3ds` int(1) NULL
+            `3ds` int(1) DEFAULT 1
         ) ENGINE = %s ;';
         $result = $db->execute(sprintf($sql, _DB_PREFIX_, _MYSQL_ENGINE_));
 
@@ -409,7 +409,7 @@ class SofincoInstaller
             'debit_differe' => 0,
             'remboursement' => 0,
             'mixte' => 0,
-            '3ds' => 0,
+            '3ds' => 1,
         );
         
         
@@ -591,6 +591,7 @@ class SofincoInstaller
     private function configurationToKeep()
     {
         return array(
+            'SOFINCO_3DS',
             'SOFINCO_ID_ORDER_STATE_NX',
             'SOFINCO_MIDDLE_STATE_NX',
             'SOFINCO_RECEIVE_PAY',

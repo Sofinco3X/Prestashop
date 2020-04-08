@@ -1,7 +1,7 @@
 {*
-* E-Transactions PrestaShop Module
+* Sofinco PrestaShop Module
 *
-* Feel free to contact E-Transactions at support@e-transactions.fr for any
+* Feel free to contact Verifone at support@paybox.com for any
 * question.
 *
 * LICENSE: This source file is subject to the version 3.0 of the Open
@@ -12,15 +12,15 @@
 * support@e-transactions.fr so we can mail you a copy immediately.
 *
 *  @category  Module / payments_gateways
-*  @version   3.0.15
-*  @author    E-Transactions <support@e-transactions.fr>
-*  @copyright 2012-2016 E-Transactions
+*  @version   3.0.1
+*  @author    BM Services <contact@bm-services.com>
+*  @copyright 2012-2016 Sofinco
 *  @license   http://opensource.org/licenses/OSL-3.0
 *  @link      http://www.e-transactions.fr/
 *}
 
-<p>Your order on <strong class="bold">{$shop_name}</strong> is being processed.</p>
+<p>Your order on <strong class="bold">{$shop.name}</strong> is being processed.</p>
 <p>It will be validated upon reception of the confirmation from the Sofinco platform, in a short moment.</p>
-<p>You have chosen the <img src="{$base_dir_ssl}modules/sofinco/img/SOF3X.png" /> method.</p>
+<p>You have chosen the <img src="{$urls.base_url}modules/sofinco/img/SOF3X.png" /> method.</p>
 <p>Your order will be sent very soon.</p>
 <p>For any question or for further information, please contact our <a href="{$link->getPageLink('contact')}">customer support</a>.</p>

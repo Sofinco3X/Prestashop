@@ -401,10 +401,15 @@ EOF;
                     // [2.2.0] Use of Tools::displayPrice + only $possibleRefund
                     // $tpl = '<p>%s %s %s</p>';
                     $tpl = '<p>%s %s</p>';
-                    $w->html(sprintf(
+        if (version_compare(_PS_VERSION_, '1.7.6', '>=')) {
+            $price = Locale::formatPrice($possibleRefund, $currency);
+        }else{
+            $price = Tools::displayPrice($possibleRefund, $currency);			
+		}
+					$w->html(sprintf(
                         $tpl,
                         $this->l('It is possible to repay'),
-                        Tools::displayPrice($possibleRefund, $currency)
+                        $price
                         // (string)($possibleRefund - $partialRefund),
                         // (string)($possibleRefund),
                         // $currency->sign
@@ -941,3 +946,4 @@ EOF;
         }
     }
 }
+

@@ -144,13 +144,14 @@ class SofincoController extends SofincoAbstract
             // [3.0.8] Try to retrieve Card from IPN params to process mixed payment methods
             if (array_key_exists('cardType', $params)) {
 
-                // [3.0.11] Mixed payment fixes on IPN calls
+                $cardType = $this->getHelper()->getRealPaymentMethodName($params['cardType']);
+  
+				// [3.0.11] Mixed payment fixes on IPN calls
                 // ANCV: Sleep on CB for next payments
                 if ('LIMOCB' == $cardType) {
                     sleep(6);
                 }
 
-                $cardType = $this->getHelper()->getRealPaymentMethodName($params['cardType']);
                 $method = $this->getHelper()->getPaymentMethod($cardType);
                 if (false !== $method) {
                     if (isset($method['mixte'])) {
@@ -167,7 +168,7 @@ class SofincoController extends SofincoAbstract
                     $indexData = explode('-', $params['paymentIndex']);
                     if (1 < count($indexData)) {
                         // Check if several payments are expected
-                        if ('1' !== $indexData[1]) {
+                        if ('1' <= $indexData[1]) {
                             $type = 'mixed';
 
                             // [3.0.11] Check if it is an additionnal payment to make it processed after the real mixed one
@@ -388,56 +389,98 @@ class SofincoController extends SofincoAbstract
             // The loop is, by default, configurer to 3 iterations of 1 seconde
             // each.
             $loop = 0;
-            if (preg_match('#^(.*)&loop=([0-9]+)$#', $_SERVER['QUERY_STRING'], $matches)) {
-                $_SERVER['QUERY_STRING'] = $matches[1];
-                $loop = intval($matches[2]);
-            }
-            $params = $this->getHelper()->getParams(false, false);
+            // if (preg_match('#^(.*)&loop=([0-9]+)$#', $_SERVER['QUERY_STRING'], $matches)) {
+                // $_SERVER['QUERY_STRING'] = $matches[1];
+                // $loop = intval($matches[2]);
+            // }
+            $params = $this->getHelper()->getParams(false, true);
             if ($params !== false) {
                 $cart = $this->getHelper()->untokenizeCart($params['reference']);
-                $orderId = Order::getOrderByCartId($cart->id);
-                if (($orderId === false) || ($this->getHelper()->getOrderDetails($orderId) === false)) {
-                    if ($loop < 20) {
-                        $url = '?' . $_SERVER['QUERY_STRING'] . '&loop=' . ($loop + 1);
-                        ?>
-                        <!doctype html>
+                // $orderId = Order::getOrderByCartId($cart->id);
+                // if (($orderId === false) || ($this->getHelper()->getOrderDetails($orderId) === false)) {
+                    // if ($loop < 20) {
+                        // $url = '?' . $_SERVER['QUERY_STRING'] . '&loop=' . ($loop + 1);
+                        // ?>
+                        <!-- <!doctype html>
                         <html>
                             <head>
-                                <meta http-equiv="refresh" content="1;url=<?php echo htmlentities($url); ?>"/>
+                                <meta http-equiv="refresh" content="1;url=<?php //echo htmlentities($url); ?>"/>
                             </head>
                             <body>
-                                <?php echo '<div style="width: 650px; margin: auto; margin-top: 20px; padding: 20px; background-color: #0089CF; font-family: Arial,sans-serif; font-size: 16px; font-weight: bold; color: white; text-align: center;">'.$this->l('Please wait while validating the order...').'</div>'; ?>
+                                <?php //echo '<div style="width: 650px; margin: auto; margin-top: 20px; padding: 20px; background-color: #0089CF; font-family: Arial,sans-serif; font-size: 16px; font-weight: bold; color: white; text-align: center;">'.$this->l('Please wait while validating the order...').'</div>'; ?>
                             </body>
-                        </html>
-                        <?php
-                        $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Waiting order validation (loop %d).', $cart->id, $loop);
-                        $this->logWarning($message);
-                        die();
-                    } else {
-                        $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Order not validated.', $cart->id);
-                        $this->logFatal($message);
-                        $this->_redirectToCart();
-                    }
-                }
+                        </html>-->
+                         <?php
+						
+                        // $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Waiting order validation (loop %d).', $cart->id, $loop);
+                        // $this->logWarning($message);
+                        // die();
+                    // } else {
+                        // $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Order not validated.', $cart->id);
+                        // $this->logFatal($message);
+                        // $this->_redirectToCart();
+                    // }
+                // }
 
                 $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Payment success.', $cart->id);
                 $this->logDebug($message);
                 // $message = $this->l('Customer is back from payment page.');
                 // TODO no way to associate this message to an order...
                 //RetroCompat 1.4
-                if (version_compare(_PS_VERSION_, '1.5', '<')) {
-                     $url = __PS_BASE_URI__.'order-confirmation.php?id_cart='.$cart->id.'&id_module='.$this->getModule()->id.'&key='.$cart->secure_key;
-                } else {
-                    $url = $this->getModule()->getContext()->link->getPageLink('order-confirmation', null, null, array(
-                        'id_cart' => $cart->id,
-                        'id_module' => $this->getModule()->id,
-                        'key' => $cart->secure_key,
-                    ));
-                }
+				$this->logDebug(sprintf('Cart %d: Validating order', $cart->id));
+				if(!$cart->OrderExists()){
+					try {
+							$message = $this->l('Payment was authorized by PaymentPlatform.');
+							$amount = $params['amount'];
+							$amountScale = pow(10, $this->getHelper()->getCurrencyDecimals($cart));
+							$amount = floatval($amount) / $amountScale;
+							$paymentName = $this->getHelper()->getDisplayName('sofinco', $params['cardType']);
+							$state = $this->getConfig()->getPendingState();
+							$result = $this->getModule()->validateOrder($cart->id, $state, $amount, $paymentName, $message, null, null, false, $cart->secure_key);
+					} catch (Exception $e) {
+						$this->logFatal(sprintf('Cart %d: Error validating PrestaShop order:', $cart->id, $e->getMessage()));
+					}
+					if (!$result) {
+						$this->logFatal(sprintf('Cart %d: Unable to validate PrestaShop order', $cart->id));
+						throw new Exception('Unable to validate order');
+					}
+					$this->logDebug(sprintf('Cart %d: Order %d validated, creating details', $cart->id, $this->currentOrder));
+					$order = new Order($this->currentOrder);
+				}else{
+					$orderId = Order::getOrderByCartId((int)($cart->id));	
+					$order = new Order($orderId);
+					$this->logDebug(sprintf('Cart %d: got Order %d', $cart->id, $order->id));
+					$changeHistory = new OrderHistory();
+					$changeHistory->id_order = $order->id;
+					$changeHistory->changeIdOrderState($this->getConfig()->getSuccessState(), $changeHistory->id_order);
+					$changeHistory->addWithemail();
+					
+				}
 
-                Tools::redirectLink($url);
-                die();
-            }
+
+				// if (!$result) {
+					// $this->logFatal(sprintf('Cart %d: Unable to validate PrestaShop order', $cart->id));
+					// throw new Exception('Unable to validate order');
+				// }else{
+						if (version_compare(_PS_VERSION_, '1.5', '<=')) {
+							 $url = __PS_BASE_URI__.'order-confirmation.php?id_cart='.$cart->id.'&id_module='.$this->getModule()->id.'&key='.$cart->secure_key;
+						} else {
+							$url = $this->getModule()->getContext()->link->getPageLink('order-confirmation', null, null, array(
+								'id_cart' => $cart->id,
+								'id_module' => $this->getModule()->id,
+								'key' => $cart->secure_key,
+							));
+						}
+						// if (version_compare(_PS_VERSION_, '1.5.0.1', '<=')) {
+							// $base = Tools::getShopDomainSsl(true, true);
+						// } else {
+							// $base = Tools::getHttpHost(true, false).__PS_BASE_URI__;
+						// }
+						// $url .= '/index.php?fc=module&module=sofinco&controller=return';
+						Tools::redirectLink($url);
+						die();
+				// }
+			}
         } catch (Exception $e) {
             // Ignore
             $this->logFatal($e->getMessage());

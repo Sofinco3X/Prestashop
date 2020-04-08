@@ -1,5 +1,14 @@
 # Change Log
 
+## [3.0.22] 2020-02-25
+### Modifications
+Corrections templates
+
+## [3.0.18] 2019-10-03
+### Modifications
+Corrections rétrocompatibilité
+Corrections diverses XML
+
 ## [3.0.14] 2019-10-03
 ### Modifications
 bypass mode mobile

@@ -177,6 +177,15 @@ EOF;
             $options[$state['id_order_state']] = Tools::stripslashes($state['name']);
         }
         $w->formSelect(
+            'SOFINCO_MIDDLE_STATE_NX',
+            $this->l('State after client return'),
+            $options,
+            Configuration::get('SOFINCO_MIDDLE_STATE_NX'),
+            null,
+			$this->l('Order status pending sofinco validation')
+		);
+		
+        $w->formSelect(
             'SOFINCO_WEB_CASH_STATE',
             $this->l('State after payment'),
             $options,
@@ -184,7 +193,7 @@ EOF;
             '2',
             $this->l('Order status if payment accepted')
         );
-
+		
         // Debit type
         // $w->formSelect(
             // 'SOFINCO_WEB_CASH_TYPE',
@@ -252,8 +261,8 @@ EOF;
             // $this->getConfig()->getDebitType() == 'receive'
         // );
 
-        // //3-D Secure: enable/disable
-        // //[3.0.6] Always enabled, only amount configuration to disable 3DS
+        //3-D Secure: enable/disable
+        //[3.0.6] Always enabled, only amount configuration to disable 3DS
         // $w->formSelect(
             // 'SOFINCO_3DS',
             // $this->l('Activate 3D-Secure'),
@@ -271,22 +280,27 @@ EOF;
 // $('#SOFINCO_3DS').change(function() {
     // var alert = $('#SOFINCO_3DS_alert');
     // var npt = $('#SOFINCO_3DS_MIN_AMOUNT_container');
+    // var npt2 = $('#SOFINCO_3DS_MAX_AMOUNT_container');
     // if (this.value == 1) {
         // alert.show('normal');
         // npt.show('normal');
+        // npt2.show('normal');
     // }
     // else {
         // alert.hide('normal');
         // npt.hide('normal');
+        // npt2.hide('normal');
     // }
 // }).change();
 // $('#SOFINCO_WEB_CASH_DIRECT').change(function() {
     // if (this.value == 1 || this.value == 2) {
         // $('#SOFINCO_3DS_MIN_AMOUNT_container').show('normal');
+        // $('#SOFINCO_3DS_MAX_AMOUNT_container').show('normal');
         // $('#SOFINCO_3DS_alert').show('normal');
     // }
     // else {
         // $('#SOFINCO_3DS_MIN_AMOUNT_container').hide('normal');
+        // $('#SOFINCO_3DS_MAX_AMOUNT_container').hide('normal');
         // $('#SOFINCO_3DS_alert').hide('normal');
         // $('#SOFINCO_3DS_MIN_AMOUNT').val('');
     // }
@@ -297,22 +311,31 @@ EOF;
         // //3-D Secure: alert
         // $w->formAlert(
             // 'SOFINCO_3DS_alert',
-            // //$this->l('Make sure that the contract signed with your bank allows 3D-Secure before proceeding with setup.'),
+        // //    $this->l('Make sure that the contract signed with your bank allows 3D-Secure before proceeding with setup.'),
             // $this->l('Warning : your bank may enforce 3D Secure. Make sure your set up is coherent with your Bank, PaymentPlatform and Prestashop'),
             // $this->getConfig()->get3DSEnabled() == '1',
             // '-60px'
         // );
 
-        // //3-D Secure: minimal amount
-        // $w->formText(
-            // 'SOFINCO_3DS_MIN_AMOUNT',
-            // $this->l('Minimum amount order 3D-Secure'),
-            // $this->getConfig()->get3DSAmount(),
-            // $this->l('Leave empty for all payments using the 3D-Secure authentication'),
-            // 3,
-            // null,
-            // $this->getConfig()->get3DSEnabled() == '1'
-        // );
+        //minimal amount
+        $w->formText(
+            'SOFINCO_MIN_AMOUNT',
+            $this->l('Minimum order amount '),
+            $this->getConfig()->getMinAmount(),
+            $this->l('Set the minimum order amount to display of the payment mean.'),
+            3,
+            null
+        );
+        
+        //maximal amount
+        $w->formText(
+            'SOFINCO_MAX_AMOUNT',
+            $this->l('Maximum order amount'),
+            $this->getConfig()->getMaxAmount(),
+            $this->l('Set the maximum order amount to display of the payment mean.'),
+            3,
+            null
+            );
 
         // //Threetime: enable/disable
         // $w->formSelect(
@@ -365,20 +388,8 @@ EOF;
             // $this->getConfig()->isRecurringEnabled()
         // );
 
-        // //Threetime: order status after first and second payments
-        // $options = array();
-        // foreach ($states as $state) {
-            // $options[$state['id_order_state']] = stripslashes($state['name']);
-        // }
-        // $w->formSelect(
-            // 'SOFINCO_MIDDLE_STATE_NX',
-            // $this->l('State after payment 1 and 2'),
-            // $options,
-            // Configuration::get('SOFINCO_MIDDLE_STATE_NX'),
-            // Configuration::get('SOFINCO_ID_ORDER_STATE_NX'),
-            // null,
-            // $this->getConfig()->isRecurringEnabled()
-        // );
+        //Threetime: order status after first and second payments
+
 
         // //Threetime: order status after final payment
         // //We reuse options array here
@@ -845,6 +856,17 @@ EOF;
             $this->l('Secret HMAC key created using the PaymentPlatform Back-Office.'),
             40
         );
+        
+        // //3DS
+        // $w->formSelect(
+            // '3ds',
+            // $this->l('3-D Secure'),
+            // array(
+                // '0' => $this->l('Not supported'),
+                // '1' => $this->l('Optional'),
+                // '2' => $this->l('Mandatory'),
+            // )
+            // );
 
         $w->formButton(null, $this->l('Save settings'));
         $w->blockEnd();
@@ -1074,6 +1096,7 @@ EOF;
 
         // Saving parameters
         $vars = $this->getModule()->getConfig()->getDefaults();
+        
         foreach ($vars as $name => $default) {
             $value = Tools::getValue($name);
             if (in_array($name, $encryptedKeys)) {
