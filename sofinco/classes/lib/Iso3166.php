@@ -3995,5 +3995,54 @@ class Iso3166 {
 		  0 => 9,
 		),
 	  ),
+	  226 =>
+	  array (
+		'alpha2' => 'BL',
+		'alpha3' => 'BLM',
+		'country_code' => '590',
+		'country_name' => 'Saint Barthélémy',
+		'mobile_begin_with' =>
+		array (
+		  0 => '6',
+		  1 => '7',
+		),
+		'phone_number_lengths' =>
+		array (
+		  0 => 9,
+		),
+	  ),
+	  227 =>
+	  array (
+		'alpha2' => 'MF',
+		'alpha3' => 'MAF',
+		'country_code' => '590',
+		'country_name' => 'Saint Martin',
+		'mobile_begin_with' =>
+		array (
+		  0 => '6',
+		  1 => '7',
+		),
+		'phone_number_lengths' =>
+		array (
+		  0 => 9,
+		),
+	  ),
+	  228 =>
+	  array (
+		'alpha2' => 'FC',
+		'alpha3' => 'FRA',
+		'country_code' => '250',
+		'country_name' => 'France Corse',
+		'mobile_begin_with' =>
+		array (
+		  0 => '6',
+		  1 => '7',
+		),
+		'phone_number_lengths' =>
+		array (
+		  0 => 9,
+		),
+	  ),
+
 	);
 }

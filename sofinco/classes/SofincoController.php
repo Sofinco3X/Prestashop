@@ -125,7 +125,7 @@ class SofincoController extends SofincoAbstract
     {
         try {
             // Retrieves params
-            $params = $this->getHelper()->getParams(true);
+            $params = $this->getHelper()->getParams(true,false);
             if ($params === false) {
                 return $this->defaultAction();
             }
@@ -266,7 +266,7 @@ class SofincoController extends SofincoAbstract
         } catch (Exception $e) {
             $message = sprintf('(IPN) Exception %s (%s %d).', $e->getMessage(), $e->getFile(), $e->getLine());
             $this->logFatal($message);
-            if($message=="Order already validated")header('Status: 200 Ok', true, 200);
+            if($message=="(IPN) Order already validated")header('Status: 200 Ok', true, 200);
 			else header('Status: 500 Error', true, 500);			
             echo $e->getMessage();
         }
@@ -394,41 +394,45 @@ class SofincoController extends SofincoAbstract
                 // $_SERVER['QUERY_STRING'] = $matches[1];
                 // $loop = intval($matches[2]);
             // }
-            $params = $this->getHelper()->getParams(false);
+            $params = $this->getHelper()->getParams(false,false);
             if ($params !== false) {
                 $cart = $this->getHelper()->untokenizeCart($params['reference']);
-                // $orderId = Order::getOrderByCartId($cart->id);
-                // if (($orderId === false) || ($this->getHelper()->getOrderDetails($orderId) === false)) {
-                    // if ($loop < 20) {
-                        // $url = '?' . $_SERVER['QUERY_STRING'] . '&loop=' . ($loop + 1);
-                        // ?>
-                        <!-- <!doctype html>
-                        <html>
-                            <head>
-                                <meta http-equiv="refresh" content="1;url=<?php //echo htmlentities($url); ?>"/>
-                            </head>
-                            <body>
-                                <?php //echo '<div style="width: 650px; margin: auto; margin-top: 20px; padding: 20px; background-color: #0089CF; font-family: Arial,sans-serif; font-size: 16px; font-weight: bold; color: white; text-align: center;">'.$this->l('Please wait while validating the order...').'</div>'; ?>
-                            </body>
-                        </html>-->
-                         <?php
-						
-                        // $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Waiting order validation (loop %d).', $cart->id, $loop);
-                        // $this->logWarning($message);
-                        // die();
-                    // } else {
-                        // $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Order not validated.', $cart->id);
-                        // $this->logFatal($message);
-                        // $this->_redirectToCart();
-                    // }
-                // }
-
-                $message = sprintf('Cart %d: Customer is back from Sofinco payment page. Payment success.', $cart->id);
+                $message = sprintf('[client-return]Cart %d: Customer is back from Sofinco payment page. Payment success.', $cart->id);
                 $this->logDebug($message);
+				$hasLocker = $this->getHelper()->hasCartLocker($cart->id, $params['transaction']);			
+				if(!$cart->OrderExists() && $hasLocker){
+	                $this->logDebug("[client-return]waiting for IPN validation, loop number: ".$loop);
+			
+						$orderId = Order::getOrderByCartId($cart->id);
+						if (($orderId === false) || ($this->getHelper()->getOrderDetails($orderId) === false)) {
+							if ($loop < 10) {
+								$url = '?' . $_SERVER['QUERY_STRING'] . '&loop=' . ($loop + 1);
+								?>
+								<!doctype html>
+								<html>
+									<head>
+										<meta http-equiv="refresh" content="1;url=<?php echo htmlentities($url); ?>"/>
+									</head>
+									<body>
+										<?php echo '<div style="width: 650px; margin: auto; margin-top: 20px; padding: 20px; background-color: #0089CF; font-family: Arial,sans-serif; font-size: 16px; font-weight: bold; color: white; text-align: center;">'.$this->l('Please wait while validating the order...').'</div>'; ?>
+									</body>
+								</html>
+								 <?php
+								
+								$message = sprintf('Cart %d: Customer is back from Sofinco payment page. Waiting order validation (loop %d).', $cart->id, $loop);
+								$this->logWarning($message);
+								die();
+							} else {
+								$message = sprintf('Cart %d: Customer is back from Sofinco payment page. Order not validated.', $cart->id);
+								$this->logFatal($message);
+								$this->_redirectToCart();
+							}
+						}
+				}
                 // $message = $this->l('Customer is back from payment page.');
                 // TODO no way to associate this message to an order...
                 //RetroCompat 1.4
-				$this->logDebug(sprintf('Cart %d: Validating order', $cart->id));
+				$this->logDebug(sprintf('[client-return]Cart %d: Validating order', $cart->id));
 				if(!$cart->OrderExists()){
 					try {
 							$message = $this->l('Payment was authorized by PaymentPlatform.');
@@ -438,23 +442,26 @@ class SofincoController extends SofincoAbstract
 							$paymentName = $this->getHelper()->getDisplayName('sofinco', $params['cardType']);
 							$state = $this->getConfig()->getPendingState();
 							$result = $this->getModule()->validateOrder($cart->id, $state, $amount, $paymentName, $message, null, null, false, $cart->secure_key);
+							
 					} catch (Exception $e) {
-						$this->logFatal(sprintf('Cart %d: Error validating PrestaShop order:', $cart->id, $e->getMessage()));
+						$this->logFatal(sprintf('[client-return]Cart %d: Error validating PrestaShop order:', $cart->id, $e->getMessage()));
 					}
 					if (!$result) {
-						$this->logFatal(sprintf('Cart %d: Unable to validate PrestaShop order', $cart->id));
+						$this->logFatal(sprintf('[client-return]Cart %d: Unable to validate PrestaShop order', $cart->id));
 						throw new Exception('Unable to validate order');
 					}
-					$this->logDebug(sprintf('Cart %d: Order %d validated, creating details', $cart->id, $this->currentOrder));
+					$this->logDebug(sprintf('[client-return]Cart %d: Order %d validated, creating details', $cart->id, Order::getOrderByCartId($cart->id)));
 					$order = new Order($this->currentOrder);
 				}else{
 					$orderId = Order::getOrderByCartId((int)($cart->id));	
 					$order = new Order($orderId);
-					$this->logDebug(sprintf('Cart %d: got Order %d', $cart->id, $order->id));
+					$this->logDebug(sprintf('[client-return]Cart %d: got Order %d', $cart->id, $order->id));
 					$changeHistory = new OrderHistory();
 					$changeHistory->id_order = $order->id;
-					$changeHistory->changeIdOrderState($this->getConfig()->getSuccessState(), $changeHistory->id_order);
-					$changeHistory->addWithemail();
+					if($order->getCurrentState() != $this->getConfig()->getSuccessState()){
+						$changeHistory->changeIdOrderState($this->getConfig()->getSuccessState(), $changeHistory->id_order);
+						$changeHistory->addWithemail();
+					}			
 					
 				}
 
@@ -482,7 +489,7 @@ class SofincoController extends SofincoAbstract
 						die();
 				// }
 			}
-        } catch (Exception $e) {
+		} catch (Exception $e) {
             // Ignore
             $this->logFatal($e->getMessage());
         }

@@ -129,6 +129,7 @@ class IsoCountry
         "FJ" => array( 'alpha2'=>'FJ', 'alpha3'=>'FJI', 'num'=>'243', 'isd'=> '679', "name" => "Fiji", "continent" => "Oceania"),
         "FI" => array( 'alpha2'=>'FI', 'alpha3'=>'FIN', 'num'=>'246', 'isd'=> '238', "name" => "Finland", "continent" => "Europe"),
         "FR" => array( 'alpha2'=>'FR', 'alpha3'=>'FRA', 'num'=>'250', 'isd'=> '33', "name" => "France", "continent" => "Europe"),
+        "FC" => array( 'alpha2'=>'FR', 'alpha3'=>'FRA', 'num'=>'250', 'isd'=> '33', "name" => "France", "continent" => "Europe"),
         "GF" => array( 'alpha2'=>'GF', 'alpha3'=>'GUF', 'num'=>'254', 'isd'=> '594', "name" => "French Guiana", "continent" => "South America"),
         "PF" => array( 'alpha2'=>'PF', 'alpha3'=>'PYF', 'num'=>'258', 'isd'=> '689', "name" => "French Polynesia", "continent" => "Oceania"),
         "TF" => array( 'alpha2'=>'TF', 'alpha3'=>'ATF', 'num'=>'260', 'isd'=> '262', "name" => "French Southern Territories", "continent" => "Antarctica"),

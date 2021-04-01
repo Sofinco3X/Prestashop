@@ -2,7 +2,7 @@
 <module>
 	<name>sofinco</name>
 	<displayName><![CDATA[Sofinco]]></displayName>
-	<version><![CDATA[3.0.22]]></version>
+	<version><![CDATA[3.0.23]]></version>
 	<description><![CDATA[In one integration, offer many payment methods, get a customized secure payment page, multi-lingual and multi-currency and offer debit on delivery or in 3 installments without charges for your customers.]]></description>
 	<author><![CDATA[Sofinco]]></author>
 	<tab><![CDATA[payments_gateways]]></tab>

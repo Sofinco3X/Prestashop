@@ -19,4 +19,4 @@
 *  @link      http://www.e-transactions.fr/
 *}
 <center><strong class="bold">{l s='Your order is being processed' mod='sofinco'}</strong><br>
-{l s='For any question or for further information, please contact our' mod='sofinco'} <br><a href="{$base_dir_ssl}contact-form.php">{l s='customer support' mod='sofinco'}</a>.</center>
+{l s='For any question or for further information, please contact our' mod='sofinco'} <br><a href="contact-form.php">{l s='customer support' mod='sofinco'}</a>.</center>

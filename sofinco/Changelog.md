@@ -1,5 +1,9 @@
 # Change Log
 
+## [3.0.23] 2020-04-10
+### Modifications
+Correction prise en compte retour client avant IPN (doubles paiements)
+
 ## [3.0.22] 2020-04-08
 ### Modifications
 Correction prise en compte IPN nocturnes (doubles paiements)

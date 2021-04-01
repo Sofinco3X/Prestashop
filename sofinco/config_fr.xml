@@ -2,7 +2,7 @@
 <module>
 	<name>sofinco</name>
 	<displayName><![CDATA[Sofinco]]></displayName>
-	<version><![CDATA[3.0.22]]></version>
+	<version><![CDATA[3.0.23]]></version>
 	<description><![CDATA[Le paiement 3XCB permet &agrave; vos clients de r&eacute;gler en 2, 3 ou 4 fois via une souscription simple, rapide et efficace augmentant votre panier moyen et votre taux de conversion. Il s&rsquo;adresse aux particuliers majeurs ayant une carte bancaire CB Fran&ccedil;aise. ]]></description>
 	<author><![CDATA[Sofinco]]></author>
 	<tab><![CDATA[payments_gateways]]></tab>
