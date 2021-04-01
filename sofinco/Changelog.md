@@ -1,4 +1,7 @@
 # Change Log
+## [3.0.24] 2021-04-01
+### Modifications
+Corrections additionnelles IPN + Correction affichage
 
 ## [3.0.23] 2020-04-10
 ### Modifications
